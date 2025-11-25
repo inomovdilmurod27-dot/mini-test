@@ -44,7 +44,7 @@
 <div class="wrap">
   <header>
     <h1>Mini Test — real-time</h1>
-    <p class="muted">Bitta sahifa, O‘qituvchi & Talaba; turli qurilmalardan real-time ko‘rinadi</p>
+    <p class="muted">Bitta sahifa, O‘qituvchi &amp; Talaba; turli qurilmalardan real-time ko‘rinadi</p>
   </header>
 
   <!-- ROL + XONA KODI TANLASH -->
@@ -65,7 +65,7 @@
       </div>
     </div>
     <div class="spacer"></div>
-    <div class="muted">Eslatma: O‘qituvchi va Talaba **bir xil xona kodini** kiritishi kerak. Ma’lumotlar Firestore’da real-time sinxronlanadi.</div>
+    <div class="muted">Eslatma: O‘qituvchi va Talaba <b>bir xil xona kodini</b> kiritishi kerak. Ma’lumotlar Firestore’da real-time sinxronlanadi.</div>
   </section>
 
   <!-- O'QITUVCHI EKRANI -->
@@ -137,31 +137,28 @@
   </section>
 </div>
 
-<!-- Firebase v9 (compat yoki modular) — bu yerda compat ishlatyapmiz sodda bo'lgani uchun -->
+<!-- Firebase (compat) -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script>
-  // === 0) Firebase sozlamalari (O'zingizning project config'ingizni kiriting) ===
-  // Firebase Console → Project settings → Your apps → SDK setup and configuration
+  /* === 0) Firebase config — sizniki === */
   const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_AUTH_DOMAIN",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_STORAGE_BUCKET",
-    messagingSenderId: "YOUR_SENDER_ID",
-    appId: "YOUR_APP_ID"
+    apiKey: "AIzaSyBtNNAj2SMWZMI4kMOIxtWOE85GlJhJpDw",
+    authDomain: "mini-test-e43d6.firebaseapp.com",
+    projectId: "mini-test-e43d6",
+    storageBucket: "mini-test-e43d6.firebasestorage.app",
+    messagingSenderId: "280817680510",
+    appId: "1:280817680510:web:7eb039abd3c8b06684d82f"
   };
 
-  // === 1) Init ===
+  /* === 1) Init === */
   firebase.initializeApp(firebaseConfig);
   const db = firebase.firestore();
 
-  // === 2) Utility ===
+  /* === 2) Helpers === */
   const $ = (id) => document.getElementById(id);
-  let ROOM = null;
-  let ROLE = null;
-  let unsubRoom = null;
-  let unsubSubs = null;
+  let ROOM = null, ROLE = null;
+  let unsubRoom = null, unsubSubs = null;
 
   function goto(screen){
     $('screen-home').style.display    = (screen === 'home')    ? '' : 'none';
@@ -172,36 +169,29 @@
   async function enterAs(role){
     const room = $('room-code').value.trim();
     if(!room){ alert("Xona kodini kiriting"); return; }
-
-    ROOM = room;
-    ROLE = role;
+    ROOM = room; ROLE = role;
 
     $('room-label-1').textContent = room;
     $('room-label-2').textContent = room;
 
     if(role === 'teacher'){
-      goto('teacher');
-      attachRoomListeners();
+      goto('teacher'); attachRoomListeners();
     } else {
-      // student
       const nameHome = $('student-name').value.trim();
       if(nameHome) $('s-name').value = nameHome;
-      goto('student');
-      attachRoomListeners();
+      goto('student'); attachRoomListeners();
     }
   }
 
-  // === 3) Firestore path'lar ===
-  function roomDoc(){ return db.collection('rooms').doc(ROOM); }
-  function subsCol(){ return roomDoc().collection('subs'); }
+  /* === 3) Paths === */
+  const roomDoc = () => db.collection('rooms').doc(ROOM);
+  const subsCol = () => roomDoc().collection('subs');
 
-  // === 4) Real-time listeners ===
+  /* === 4) Real-time listeners === */
   function attachRoomListeners(){
-    // Joriy savol (doc listener)
     if(unsubRoom) unsubRoom();
     unsubRoom = roomDoc().onSnapshot(snap => {
       const data = snap.data();
-      // Teacher UI
       if(ROLE === 'teacher'){
         if(data && data.question){
           $('current-box').style.display = '';
@@ -212,16 +202,13 @@
           $('current-box').style.display = 'none';
         }
       }
-      // Student UI
       $('s-question').textContent = (data && data.question) ? data.question : 'Savol hali kiritilmagan';
     });
 
-    // Yuborilgan javoblar (collection listener) — faqat o‘qituvchi ekranida ko‘rsatamiz
     if(unsubSubs) unsubSubs();
     unsubSubs = subsCol().orderBy('time','desc').onSnapshot(snap => {
       if(ROLE !== 'teacher') return;
-      const list = $('sub-list');
-      const empty = $('sub-empty');
+      const list = $('sub-list'), empty = $('sub-empty');
       list.innerHTML = '';
       if(snap.empty){ empty.style.display = ''; return; }
       empty.style.display = 'none';
@@ -243,21 +230,21 @@
     });
   }
 
-  // === 5) O‘qituvchi amallari ===
+  /* === 5) O‘qituvchi amallari === */
   async function saveQuestion(){
     const q = $('t-question').value.trim();
     const a = $('t-answer').value.trim();
     if(!q || !a){ $('t-status').innerHTML = '<div class="err">Savol va javob bo‘sh bo‘lmasin.</div>'; return; }
-
-    await roomDoc().set({
-      question: q, answer: a, createdAt: Date.now()
-    }, { merge: true });
-
+    await roomDoc().set({ question:q, answer:a, createdAt:Date.now() }, { merge:true });
     $('t-status').innerHTML = '<div class="ok">Saqlandi.</div>';
   }
 
   async function clearQuestion(){
-    await roomDoc().set({ question: firebase.firestore.FieldValue.delete(), answer: firebase.firestore.FieldValue.delete(), createdAt: Date.now() }, { merge: true });
+    await roomDoc().set({
+      question: firebase.firestore.FieldValue.delete(),
+      answer:   firebase.firestore.FieldValue.delete(),
+      createdAt: Date.now()
+    }, { merge:true });
   }
 
   async function clearSubmissions(){
@@ -267,7 +254,7 @@
     await batch.commit();
   }
 
-  // === 6) Talaba amallari ===
+  /* === 6) Talaba amallari === */
   async function submitAnswer(){
     const name = $('s-name').value.trim();
     const ans  = $('s-answer').value.trim();
@@ -278,33 +265,14 @@
     if(!data || !data.question){ $('s-status').innerHTML = '<div class="warn">Hozircha savol mavjud emas.</div>'; return; }
 
     const correct = String(ans).trim().toLowerCase() === String(data.answer ?? '').trim().toLowerCase();
-    await subsCol().add({ name, answer: ans, correct, time: Date.now() });
+    await subsCol().add({ name, answer:ans, correct, time:Date.now() });
 
     $('s-status').innerHTML = correct ? '<div class="ok">Javobingiz qabul qilindi. ✅</div>' : '<div class="warn">Javobingiz qabul qilindi.</div>';
     $('s-answer').value = '';
   }
 
-  // start
+  /* start */
   goto('home');
-</script>
-  <script type="module">
-  // Import the functions you need from the SDKs you need
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
-  // TODO: Add SDKs for Firebase products that you want to use
-  // https://firebase.google.com/docs/web/setup#available-libraries
-
-  // Your web app's Firebase configuration
-  const firebaseConfig = {
-    apiKey: "AIzaSyBtNNAj2SMWZMI4kMOIxtWOE85GlJhJpDw",
-    authDomain: "mini-test-e43d6.firebaseapp.com",
-    projectId: "mini-test-e43d6",
-    storageBucket: "mini-test-e43d6.firebasestorage.app",
-    messagingSenderId: "280817680510",
-    appId: "1:280817680510:web:7eb039abd3c8b06684d82f"
-  };
-
-  // Initialize Firebase
-  const app = initializeApp(firebaseConfig);
 </script>
 </body>
 </html>
